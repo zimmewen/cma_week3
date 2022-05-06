@@ -35,7 +35,6 @@ In the dataset, the sampling interval is 15 minutes. If we take a temporal windo
 
 ## B) Measure the distance from every point to every other point within this temporal window (v)
 We use the formula for calculating the Euclidean distance in in combination with lead() and lag(). For example, to create the necessary offset of n-2, we use lag(x, 2). For each offset, we create one individual column.
-
 ```{r}
 sabi <- sabi %>%
   mutate(
@@ -89,12 +88,12 @@ ggplot()+
 ## Task 1:Segmentation
 # Load Data
 ```{r}
-caro60 <- read_delim("caro60.csv",",")
+caro <- read_delim("caro60.csv",",")
 ```
 
 # Sampling Interval is 1 minute. Use temporal window v of 6 minutes, window size of 6 positions (n +- 3)
 ```{r}
-caro60 <- caro60 %>%
+caro <- caro %>%
   mutate(
     nMinus3 = sqrt((lag(E,3)-E)^2+(lag(N,3)-N)^2),    # distance to pos -3 minutes
     nMinus2 = sqrt((lag(E,2)-E)^2+(lag(N,2)-N)^2),    # distance to pos -2 minutes
@@ -106,4 +105,37 @@ caro60 <- caro60 %>%
 ```
 
 
+## Task 2: Specify and apply threshold d
+#Calculating stepMean for every point to every other point within this temporal window (v)
+```{r}
+caro <- caro %>%
+  rowwise() %>%
+  mutate(
+    stepMean = mean(c(nMinus3,nMinus2, nMinus1,nPlus1,nPlus2,nPlus3))
+  ) %>%
+  ungroup()
+```
+
+#Explore stepMean to find reasonable Threshold
+```{r}
+summary(caro$stepMean)
+
+ggplot(caro, aes(x=stepMean))+         
+  geom_histogram(binwidth=2) #zeigt meiste Werte liegen bei 50-10
+```
+
+#Remove static values
+```{r}
+caro <- caro %>% 
+  ungroup() %>%
+  mutate(static = stepMean < mean(5, na.rm = TRUE)) #'5' ist der gewählte Threshold
+
+caro_filter <- caro %>%
+  filter(static == FALSE)  #im Beispiel stand "filter(!static)", um doppelte Verneinung zu vermeiden 
+
+caro_filter%>%
+  ggplot(aes(E, N)) +
+  geom_path() +
+  geom_point() +
+```
 
