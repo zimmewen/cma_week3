@@ -83,4 +83,27 @@ sabi_filter%>%
 ggplot()+
   geom_path(aes(E,N), sabi_filter %>% filter(stepMean > 500))
 --->>>> Wie geht das???
-  
+
+
+
+## Task 1:Segmentation
+# Load Data
+```{r}
+caro60 <- read_delim("caro60.csv",",")
+```
+
+# Sampling Interval is 1 minute. Use temporal window v of 6 minutes, window size of 6 positions (n +- 3)
+```{r}
+caro60 <- caro60 %>%
+  mutate(
+    nMinus3 = sqrt((lag(E,3)-E)^2+(lag(N,3)-N)^2),    # distance to pos -3 minutes
+    nMinus2 = sqrt((lag(E,2)-E)^2+(lag(N,2)-N)^2),    # distance to pos -2 minutes
+    nMinus1 = sqrt((lag(E,1)-E)^2+(lag(N,1)-N)^2),    # distance to pos -1 minutes
+    nPlus1  = sqrt((E-lead(E,1))^2+(N-lead(N,1))^2),  # distance to pos +1 mintues
+    nPlus2  = sqrt((E-lead(E,2))^2+(N-lead(N,2))^2),  # distance to pos +2 minutes
+    nPlus3  = sqrt((E-lead(E,3))^2+(N-lead(N,3))^2)   # distance to pos +3 minutes
+  )
+```
+
+
+
