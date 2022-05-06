@@ -133,9 +133,22 @@ caro <- caro %>%
 caro_filter <- caro %>%
   filter(static == FALSE)  #im Beispiel stand "filter(!static)", um doppelte Verneinung zu vermeiden 
 
-caro_filter%>%
+caro_filter %>%
   ggplot(aes(E, N)) +
   geom_path() +
-  geom_point() +
+  geom_point()
 ```
+
+
+## Task 3: Visualize segmented trajectories spatially
+```{r}
+ggplot(caro, aes(E, N, color=static))+
+  geom_path()+
+  geom_point()+
+  coord_equal()
+#Plot zeigt 'NA'-Werte als Ausreisser, die nicht logisch erscheinen
+```
+
+
+
 
