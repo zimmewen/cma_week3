@@ -13,10 +13,8 @@ Segmentation of Trajectories
 
 ## Load the necessary libraries ###
 ```{r}
-library(readr)        # to import tabular data (e.g. csv)
-library(dplyr)        # to manipulate (tabular) data
-library(ggplot2)      # to visualize data
-library(lubridate)    # To handle dates and times
+library(tidyverse)    
+library(lubridate)
 ```
 
 ## Load Data Sabi
@@ -105,44 +103,40 @@ caro <- caro %>%
 ```
 
 
+
 ## Task 2: Specify and apply threshold d
 #Calculating stepMean for every point to every other point within this temporal window (v)
 ```{r}
 caro <- caro %>%
   rowwise() %>%
-  mutate(
-    stepMean = mean(c(nMinus3,nMinus2, nMinus1,nPlus1,nPlus2,nPlus3))
-  ) %>%
-  ungroup()
+  mutate(stepMean = mean(c(nMinus3,nMinus2, nMinus1,nPlus1,nPlus2,nPlus3))) %>%
+  ungroup()  
 ```
 
-#Explore stepMean to find reasonable Threshold
+#Explore stepMean to find reasonable threshold
 ```{r}
 summary(caro$stepMean)
 
 ggplot(caro, aes(x=stepMean))+         
-  geom_histogram(binwidth=2) #zeigt meiste Werte liegen bei 50-10
+  geom_histogram(binwidth=2) #zeigt meiste Werte liegen bei 5-10
 ```
 
-#Remove static values
+#Remove static values by assigning threshold
 ```{r}
 caro <- caro %>% 
-  ungroup() %>%
-  mutate(static = stepMean < mean(5, na.rm = TRUE)) #'5' ist der gewählte Threshold
+#  ungroup() %>%    #nicht ganz klar warum man hier wieder entgruppiert wird
+  mutate(static = stepMean < mean(5, na.rm = TRUE)) #gewählte threshold '5' als Boolean in neuer Spalte ablegen
 
-caro_filter <- caro %>%
-  filter(static == FALSE)  #im Beispiel stand "filter(!static)", um doppelte Verneinung zu vermeiden 
+#caro_threshold <- caro %>%
+#  filter(static == FALSE)  #im Beispiel stand "filter(!static)", um doppelte Verneinung zu vermeiden 
 
-caro_filter %>%
-  ggplot(aes(E, N)) +
-  geom_path() +
-  geom_point()
 ```
 
 
-## Task 3: Visualize segmented trajectories spatially
+
+## Task 3: Visualize segmented trajectories with Boolean
 ```{r}
-ggplot(caro, aes(E, N, color=static))+
+ggplot(caro, aes(E, N, color=static))+   #Achtung, hier gesamten Datensatz nehmen
   geom_path()+
   geom_point()+
   coord_equal()
@@ -151,4 +145,49 @@ ggplot(caro, aes(E, N, color=static))+
 
 
 
+## Task 4: Segment-based analysis
+# Assign unique ID for each segment, that we can use as grouping variable
+```{r}
+rle_id <- function(vec){
+  x <- rle(vec)$lengths
+  as.factor(rep(seq_along(x), times=x))
+  }
+#rle_id ist Name der Funktion, alles danach ist das was diese tut
+```
+
+#Use function to assign unique IDs to subtrajectories.
+```{r}
+caro <- caro %>%
+  mutate(segment_id = rle_id(static))
+```
+
+#Visualize moving segments by colourizing them by segment_ID.
+```{r}
+caro %>%
+  filter(static == FALSE) %>%   #Filter, damit nur Segmente in denen sich etwas bewegt, gezeigt werden
+  ggplot(aes(E, N, color=segment_id))+
+  geom_path()+
+  geom_point()+
+  coord_equal()+
+  labs(title = "All segments (uncleaned)")
+```
+
+#Use segment_ID as a grouping variable to determine the segments duration and remove short segments (e.g. segments with a duration < 5 Minutes)
+```{r}
+caro_cleaned <- caro %>%
+  group_by(segment_id) %>%
+  mutate(duration = max(DatetimeUTC)-min(DatetimeUTC))%>% #berechne Dauer der Bewegung
+  filter(duration > 300)%>%  #entferne alle Segmente mit Bewegung < 5 Minuten
+  filter(static == FALSE)   #entferne alle "unbeweglichen" Punkte (hätte man sicher auch schon oben machen können)
+
+ggplot(caro_cleaned, aes(E, N, color = segment_id))+
+  geom_path()+
+  geom_point()+
+  coord_equal()+
+  labs(title = "Long segments (removed segments <5)")
+#gleicht Grafik in Beispiel, aber hat noch mehr Segmente, vermutlich Threshold zu klein gewählt
+
+```
+  
+  
 
