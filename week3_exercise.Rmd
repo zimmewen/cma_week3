@@ -127,16 +127,13 @@ caro <- caro %>%
 #  ungroup() %>%    #nicht ganz klar warum man hier wieder entgruppiert wird
   mutate(static = stepMean < mean(5, na.rm = TRUE)) #gewählte threshold '5' als Boolean in neuer Spalte ablegen
 
-#caro_threshold <- caro %>%
-#  filter(static == FALSE)  #im Beispiel stand "filter(!static)", um doppelte Verneinung zu vermeiden 
-
 ```
 
 
 
 ## Task 3: Visualize segmented trajectories with Boolean
 ```{r}
-ggplot(caro, aes(E, N, color=static))+   #Achtung, hier gesamten Datensatz nehmen
+ggplot(caro, aes(E, N, color=static))+
   geom_path()+
   geom_point()+
   coord_equal()
@@ -164,7 +161,7 @@ caro <- caro %>%
 #Visualize moving segments by colourizing them by segment_ID.
 ```{r}
 caro %>%
-  filter(static == FALSE) %>%   #Filter, damit nur Segmente in denen sich etwas bewegt, gezeigt werden
+  filter(static == FALSE) %>%   #Filter, damit nur Segmente in denen sich etwas bewegt, gezeigt werden; im Beispiel stand "filter(!static)" --> umgeschrieben um doppelte Verneinung zu vermeiden 
   ggplot(aes(E, N, color=segment_id))+
   geom_path()+
   geom_point()+
@@ -190,4 +187,28 @@ ggplot(caro_cleaned, aes(E, N, color = segment_id))+
 ```
   
   
+
+## Task 5: Similarity measures on human movement
+# Achtung neues Dataset
+```{r}
+pedestrian <- read_delim("pedestrian.csv",",")
+```
+
+#Explore the trajectories first and get an idea on how the pedestrians moved
+```{r}
+ggplot(pedestrian, aes(E, N, color = TrajID))+
+  geom_path()+
+  geom_point()+
+  coord_equal()+
+  theme(legend.position = "bottom")+
+  labs(title = "Visual comparison of the 6 trajectories",
+      subtitle = "Each subplot highlights a trajectory")+
+  facet_wrap(~ TrajID, nrow = 2)
+```
+
+
+
+
+
+
 
