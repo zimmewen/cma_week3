@@ -15,6 +15,8 @@ Segmentation of Trajectories
 ```{r}
 library(tidyverse)    
 library(lubridate)
+library(SimilarityMeasures)
+library(cowplot)
 ```
 
 ## Load Data Sabi
@@ -57,12 +59,11 @@ sabi <- sabi %>%
 
 
 ## C) Remove “static points”: These are points where the average distance is less than a given threshold. This segments the trajectory into subtrajectories
----->>> was ist der Threshold? Würde erwarten, dass es eine fixe Zahl ist???!!!
 We can now determine if an animal is moving or not by specifying a threshold distance on stepMean. In our example, we use the mean value as a threshold: Positions with distances below this value are considered static.
 ```{r}
 sabi <- sabi %>% 
   ungroup() %>%
-  mutate(static = stepMean < mean(stepMean, na.rm = TRUE))
+  mutate(static = stepMean < mean(stepMean, na.rm = TRUE))  #'stepMean' muss mit Zahl als Threshold ersetzt werden
 
 sabi_filter <- sabi %>%
   filter(!static)
@@ -77,9 +78,11 @@ sabi_filter%>%
 
 
 ## D) Now remove short subtrajectories: These are trajectories with a short duration (whereas “short” is tbd)
+```{r}
 ggplot()+
   geom_path(aes(E,N), sabi_filter %>% filter(stepMean > 500))
---->>>> Wie geht das???
+#Grafik ist falsch, aber ohne weitere Fehlersuche mal zur richtigen Aufgabenstellung übergegangen
+```
 
 
 
@@ -200,14 +203,169 @@ ggplot(pedestrian, aes(E, N, color = TrajID))+
   geom_path()+
   geom_point()+
   coord_equal()+
-  theme(legend.position = "bottom")+
+  theme(legend.position = "none")+
   labs(title = "Visual comparison of the 6 trajectories",
       subtitle = "Each subplot highlights a trajectory")+
-  facet_wrap(~ TrajID, nrow = 2)
+  facet_wrap(~ TrajID)
 ```
 
 
 
+## Task 6: Calculate similarity
+#Install package SimilarityMeasures
+```{r}
+#install.packages("SimilarityMeasures")
+#am Anfang Datei ausgeführt
+```
+
+#Get familiar with the package
+```{r}
+?SimilarityMeasures
+```
+
+#All functions in the package need matrices as input, with one trajectory per matrix.
+```{r}
+#Select and safe single trajectories
+TJ1 <- pedestrian %>%
+  filter(TrajID == 1)
+TJ2 <- pedestrian %>%
+  filter(TrajID == 2)
+TJ3 <- pedestrian %>%
+  filter(TrajID == 3)
+TJ4 <- pedestrian %>%
+  filter(TrajID == 4)
+TJ5 <- pedestrian %>%
+  filter(TrajID == 5)
+TJ6 <- pedestrian %>%
+  filter(TrajID == 6)
+
+#Change from dataframe to matrix
+TJ1_mtx <- data.matrix(TJ1)
+TJ2_mtx <- data.matrix(TJ2)
+TJ3_mtx <- data.matrix(TJ3)
+TJ4_mtx <- data.matrix(TJ4)
+TJ5_mtx <- data.matrix(TJ5)
+TJ6_mtx <- data.matrix(TJ6)
+
+```
+
+
+# Calculate DTW (dynamic time warping)
+```{r}
+#DTW(traj1, traj2, pointSpacing=-1)
+#point spacing: integer value of the maximum index difference between trajectory1 and trajectory2 allowed in the calculation. A negative value sets the point spacing to unlimited.
+TJ2_dtw <- DTW(TJ1_mtx, TJ2_mtx, pointSpacing = 4)
+TJ3_dtw <- DTW(TJ1_mtx, TJ3_mtx, pointSpacing = 4)
+TJ4_dtw <- DTW(TJ1_mtx, TJ4_mtx, pointSpacing = 4)
+TJ5_dtw <- DTW(TJ1_mtx, TJ5_mtx, pointSpacing = 4)
+TJ6_dtw <- DTW(TJ1_mtx, TJ6_mtx, pointSpacing = 4)
+
+```
+
+#Calculate Edit Distance
+```{r}
+#EditDist(traj1, traj2, pointDistance=20)
+#point distance: floating point number representing maximum distance in each dimension allowed for points to be considered equivalent.
+TJ2_editdist <- EditDist(TJ1_mtx, TJ2_mtx, pointDistance = 4)
+TJ3_editdist <- EditDist(TJ1_mtx, TJ3_mtx, pointDistance = 4)
+TJ4_editdist <- EditDist(TJ1_mtx, TJ4_mtx, pointDistance = 4)
+TJ5_editdist <- EditDist(TJ1_mtx, TJ5_mtx, pointDistance = 4)
+TJ6_editdist <- EditDist(TJ1_mtx, TJ6_mtx, pointDistance = 4)
+
+```
+
+#Calculate Frechet
+```{r}
+#Frechet(traj1, traj2, testLeash=-1)
+#testleash: numeric value, which if positive, checks whether the leash can be used --> results in boolean; if values negative, then it is not used and the standard calculation is performed.
+TJ2_frechet <- Frechet(TJ1_mtx, TJ2_mtx, testLeash = -1)
+TJ3_frechet <- Frechet(TJ1_mtx, TJ3_mtx, testLeash = -1)
+TJ4_frechet <- Frechet(TJ1_mtx, TJ4_mtx, testLeash = -1)
+TJ5_frechet <- Frechet(TJ1_mtx, TJ5_mtx, testLeash = -1)
+TJ6_frechet <- Frechet(TJ1_mtx, TJ6_mtx, testLeash = -1)
+
+```
+
+#Calculate LCSS (allowing translations)
+```{r}
+#LCSS(traj1, traj2, pointSpacing=-1, pointDistance=20, errorMarg=2, returnTrans=FALSE)
+#pointSpacing: integer value of the maximum index difference between trajectory1 and trajectory2 allowed in the calculation. A negative value sets the point spacing to unlimited.
+# pointDistance: floating point number representing the maximum distance in each dimension allowed for points to be considered equivalent.
+#errorMarg: floating point error margin used to scale the accuracy and speed of the calculation.
+#returnTrans: boolean value to allow the best translation found to be returned as well as the LCSS value if set to true
+TJ2_lcss <- LCSS(TJ1_mtx, TJ2_mtx, pointSpacing = 4, pointDistance = 4, errorMarg = 2, returnTrans = FALSE)
+TJ3_lcss <- LCSS(TJ1_mtx, TJ3_mtx, pointSpacing = 4, pointDistance = 4, errorMarg = 2, returnTrans = FALSE)
+TJ4_lcss <- LCSS(TJ1_mtx, TJ4_mtx, pointSpacing = 4, pointDistance = 4, errorMarg = 2, returnTrans = FALSE)
+TJ5_lcss <- LCSS(TJ1_mtx, TJ5_mtx, pointSpacing = 4, pointDistance = 4, errorMarg = 2, returnTrans = FALSE)
+TJ6_lcss <- LCSS(TJ1_mtx, TJ6_mtx, pointSpacing = 4, pointDistance = 4, errorMarg = 2, returnTrans = FALSE)
+
+```
+
+#Create Tibble/Dataframe from calculated values
+```{r}
+#Zusammenfügen aller errechneten Werte pro Measure Methode
+
+#Option 1: Dataframe
+#würde theoretische funktionieren, aber teilweise nicht nachvollziehbare Values und Fehlermeldungen
+#Traj_all <- data.frame(
+#       "dtw" = c(TJ2_dtw,TJ3_dtw,TJ4_dtw,TJ5_dtw,TJ6_dtw),          
+#       "editdist"= c(TJ2_editdist,TJ3_editdist,TJ4_editdist,TJ5_editdist,TJ6_editdist),
+#       "frechet" = c(TJ2_frechet,TJ3_frechet,TJ4_frechet,TJ5_frechet,TJ6_frechet),
+#       "lcss" = c(TJ2_lcss,TJ3_lcss,TJ4_lcss,TJ5_lcss,TJ6_lcss),
+#       "trajectory" = c(2,3,4,5,6))
+
+
+#Option 2: Tibble
+dtw <- c(TJ2_dtw, TJ3_dtw, TJ4_dtw, TJ5_dtw, TJ6_dtw)
+editdist <- c(TJ2_editdist, TJ3_editdist, TJ4_editdist, TJ5_editdist, TJ6_editdist)
+frechet <- c(TJ2_frechet, TJ3_frechet, TJ4_frechet, TJ5_frechet, TJ6_frechet)
+lcss <- c(TJ2_lcss, TJ3_lcss, TJ4_lcss, TJ5_lcss, TJ6_lcss)
+
+Traj_all <- tibble(dtw, editdist, frechet, lcss, trajectory = c(2,3,4,5,6))
+
+#Umformen des Tibbles (oder Dataframes)
+Traj_long <- Traj_all %>%
+  pivot_longer(names_to = "name", values_to = "value", -trajectory)
+
+```
+
+#Visualize and compare Traj1 to Traj2-6 using different similarity measures
+```{r}
+#Prepare single plots for each measure method
+dtw_plot <- Traj_long %>%
+  filter(name == "dtw") %>%
+  ggplot()+
+  theme(legend.position = "none")+
+  labs(x="",title = "DTW")+
+  geom_col(mapping = aes(x = trajectory, y = value, fill = trajectory))
+
+editdist_plot <- Traj_long %>%
+  filter(name == "editdist") %>%
+  ggplot()+
+  theme(legend.position = "none")+
+  labs(x="",title = "Edit Distance")+
+  geom_col(mapping = aes(x = trajectory, y = value, fill = trajectory))
+
+frechet_plot <- Traj_long %>%
+  filter(name == "frechet") %>%
+  ggplot()+
+  theme(legend.position = "none")+
+  labs(x="",title = "Frechet")+
+  geom_col(mapping = aes(x = trajectory, y = value, fill = trajectory))
+
+lcss_plot <- Traj_long %>%
+  filter(name == "lcss") %>%
+  ggplot()+
+  theme(legend.position = "none")+
+  labs(x="",title = "LCSS")+
+  geom_col(mapping = aes(x = trajectory, y = value, fill = trajectory))
+
+#Zusammenfügen aller Plots
+plot_grid(dtw_plot, editdist_plot, frechet_plot, lcss_plot)
+#könnte noch Legende und Überschrift vertragen
+#Grafiken DTW und LCSS sehen anders aus als Beispiel
+
+```
 
 
 
