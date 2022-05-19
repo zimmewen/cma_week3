@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Segmentation of Trajectories
 
 ## Load the necessary libraries ###
-```{r}
+```{r message=FALSE, warning= FALSE}
 library(tidyverse)    
 library(lubridate)
 library(SimilarityMeasures)
@@ -63,7 +63,7 @@ We can now determine if an animal is moving or not by specifying a threshold dis
 ```{r}
 sabi <- sabi %>% 
   ungroup() %>%
-  mutate(static = stepMean < mean(stepMean, na.rm = TRUE))  #'stepMean' muss mit Zahl als Threshold ersetzt werden
+  mutate(static = stepMean < mean(stepMean, na.rm = TRUE))
 
 sabi_filter <- sabi %>%
   filter(!static)
@@ -124,11 +124,11 @@ ggplot(caro, aes(x=stepMean))+
   geom_histogram(binwidth=2) #zeigt meiste Werte liegen bei 5-10
 ```
 
-#Remove static values by assigning threshold
+#Remove static values
 ```{r}
 caro <- caro %>% 
-#  ungroup() %>%    #nicht ganz klar warum man hier wieder entgruppiert wird
-  mutate(static = stepMean < mean(5, na.rm = TRUE)) #gewählte threshold '5' als Boolean in neuer Spalte ablegen
+# ungroup() %>%    #nicht ganz klar warum hier wieder entgruppiert wird
+  mutate(static = stepMean < mean(stepMean, na.rm = TRUE))  #für 'steMean' keinen! gewählten Threshold einsetzen
 
 ```
 
